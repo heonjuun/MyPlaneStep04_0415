@@ -41,11 +41,21 @@ void AMyActor::BeginPlay()
 {
 	Super::BeginPlay();
 
+	FLatentActionInfo F;
+	F.CallbackTarget = this;
+	F.ExecutionFunction = FName(TEXT(""));
+	F.Linkage = 1;
+	F.UUID = 0;
+
 	OnActorBeginOverlap.AddDynamic(this, &AMyActor::ProcessActorBeginOverlap);
 
 	SetLifeSpan(3.0f);
 	
 }
+//void AMyActor::Delay()
+//{
+//
+//}
 
 // Called every frame
 void AMyActor::Tick(float DeltaTime)

@@ -4,7 +4,12 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Pawn.h"
+#include <EnhancedInputLibrary.h>
+
+#include"InputAction.h"
+
 #include "MyPawn.generated.h"
+
 
 class UBoxComponent;
 class UStaticMeshComponent;
@@ -13,7 +18,8 @@ class USpringArmComponent;
 class UCameraComponent;
 class UFloatingPawnMovement;
 class UMyStaticMeshComponent;
-
+class UInputAction;
+class AMyActor;
 UCLASS()
 class MYPLANESTEP04_0415_API AMyPawn : public APawn
 {
@@ -31,16 +37,26 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
-	void RotatePropeller(USceneComponent* Where, float RotationSpeed);
+	/*void RotatePropeller(USceneComponent* Where, float RotationSpeed);*/
 
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+
+	void Rotate(const FInputActionValue& Value);
+
+	void Fire(const FInputActionValue& Value);
+
+	void Boost(const FInputActionValue& Value);
+
+	void Unboost(const FInputActionValue& Value);
+
+
 
 	
 
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Components) //visible은 C++변수를 블루프린트에서 보기 위해 사용
-	TObjectPtr<UBoxComponent> Box;
+	TObjectPtr<UBoxComponent> Box;  // UBoxComponent *Box와 같지만 더효과적인 걸 사용하기위해 toObjectPtr함수를 사용
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Components)
 	TObjectPtr<UStaticMeshComponent> Body;
@@ -63,27 +79,23 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Components)
 	TObjectPtr<UFloatingPawnMovement> Movement;
 
-	void Pitch(float Value);
 
-	void Roll(float Value);
 
-	void Fire();
 
-	void Boost();
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Inputs)
+	TObjectPtr<UInputAction> IA_Boost;
 
-	void Unboost();
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Inputs)
+	TObjectPtr<UInputAction> IA_Rotate;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Data)
-	float MoveSpeed = 1000.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Inputs)
+	TObjectPtr<UInputAction> IA_Fire;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Data)
-	float RotationSpeed = 60.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Data)
+	TSubclassOf<AMyActor> RocketTemlate;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Data)
 	float BoostValue = 0.5f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Data)
-	float PropellerRotationSpeed = 7200.0f;
 
 
 

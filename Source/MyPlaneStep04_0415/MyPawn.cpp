@@ -10,6 +10,7 @@
 #include"GameFrameWork/FloatingPawnMovement.h"
 #include"Kismet/GameplayStatics.h"
 #include"MyStaticMeshComponent.h"
+#include"EnhancedInputComponent.h"
 
 #include"MyActor.h"
 
@@ -21,6 +22,8 @@ AMyPawn::AMyPawn()
  	// Set this pawn to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
+	//엔진님에게 요청을 한다. 다 NewObject다
+	//CreateDefaultSubobject에서 해당작업 수행해줌
 	Box = CreateDefaultSubobject<UBoxComponent>(TEXT("Box"));
 	RootComponent = Box;
 	Box->SetBoxExtent(FVector(40.0f,44.2f,12.4f));
@@ -58,7 +61,7 @@ AMyPawn::AMyPawn()
 	SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm"));
 	SpringArm->SetupAttachment(Box);
 	SpringArm->SocketOffset = FVector(0, 0, 33.33f);
-	SpringArm->TargetArmLength = 120.0f;
+	SpringArm->TargetArmLength = 150.0f;
 	SpringArm->bEnableCameraLag = true;
 	SpringArm->bEnableCameraRotationLag = true;
 
@@ -67,14 +70,16 @@ AMyPawn::AMyPawn()
 
 	Movement = CreateDefaultSubobject<UFloatingPawnMovement>(TEXT("Movement"));
 
-	Movement->MaxSpeed = 0;
+	Movement->MaxSpeed = 2000;
 
 
 
-
-
-	
-
+	//블푸 클래스에 로켓 기본값 주입
+	static ConstructorHelpers::FClassFinder<AMyActor> BP_AMyActor(TEXT("/Script/Engine.Blueprint'/Game/Blueprints/BP_MyActor.BP_MyActor_C'"));
+	if (BP_AMyActor.Succeeded())
+	{
+		RocketTemlate = BP_AMyActor.Class;
+	}
 }
 
 // Called when the game starts or when spawned
@@ -97,42 +102,41 @@ void AMyPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
-	PlayerInputComponent->BindAxis(TEXT("Pitch"),this, &AMyPawn::Pitch);
-	PlayerInputComponent->BindAxis(TEXT("Roll"), this, &AMyPawn::Roll);
-	PlayerInputComponent->BindAction(TEXT("Fire"), EInputEvent::IE_Pressed,this, &AMyPawn::Fire);
-	PlayerInputComponent->BindAction(TEXT("Boost"), EInputEvent::IE_Pressed, this, &AMyPawn::Boost);
-	PlayerInputComponent->BindAction(TEXT("Boost"), EInputEvent::IE_Released, this, &AMyPawn::Unboost);
-	
+	UEnhancedInputComponent* UIC = Cast<UEnhancedInputComponent>(PlayerInputComponent);
+	if (UIC)
+	{
+		UIC->BindAction(IA_Rotate, ETriggerEvent::Triggered, this, &AMyPawn::Rotate);
+		UIC->BindAction(IA_Fire, ETriggerEvent::Triggered, this, &AMyPawn::Fire);
+		UIC->BindAction(IA_Boost, ETriggerEvent::Triggered, this, &AMyPawn::Boost);
+		UIC->BindAction(IA_Boost, ETriggerEvent::Completed, this, &AMyPawn::Unboost);
+	}
 }
 
-void AMyPawn::RotatePropeller(USceneComponent* Where, float Rotationspeed)
+
+void AMyPawn::Rotate(const FInputActionValue& Value)
 {
-	Where->AddLocalRotation(FRotator(0,0, Rotationspeed *UGameplayStatics::GetWorldDeltaSeconds(GetWorld())));
+	FVector2D Rot = Value.Get<FVector2D>();
+	Rot = Rot * UGameplayStatics::GetWorldDeltaSeconds(GetWorld()) * 60.0f;
+
+	AddActorLocalRotation(FRotator(Rot.Y,0,Rot.X));
 }
 
-void AMyPawn::Pitch(float Value)
+
+void AMyPawn::Fire(const FInputActionValue& Value)
 {
-	AddActorLocalRotation(FRotator(RotationSpeed*Value*UGameplayStatics::GetWorldDeltaSeconds(GetWorld())),0,0);
+	GetWorld()->SpawnActor<AMyActor>(RocketTemlate,Arrow->K2_GetComponentToWorld());
 }
 
-void AMyPawn::Roll(float Value)
-{
-	AddActorLocalRotation(FRotator(0,0,RotationSpeed*Value*UGameplayStatics::GetWorldDeltaSeconds(GetWorld())));
-}
 
-void AMyPawn::Fire()
+void AMyPawn::Boost(const FInputActionValue& Value)
 {
-	GetWorld()->SpawnActor<AMyActor>(AMyActor::StaticClass(),
-		Arrow->K2_GetComponentToWorld());
-}
-
-void AMyPawn::Boost()
-{
+	UE_LOG(LogTemp, Warning, TEXT("Boost %d"), Value.Get<bool>());
 	BoostValue = 1.0f;
 }
 
-void AMyPawn::Unboost()
+void AMyPawn::Unboost(const FInputActionValue& Value)
 {
+	UE_LOG(LogTemp, Warning, TEXT("Unboost"));
 	BoostValue = 0.5f;
 }
 
